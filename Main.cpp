@@ -81,8 +81,12 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 
 	inImage.RGB2YUV();
 	inImage.YUV2RGB();
+	inImage.SubSampling(Y, U, V);
 
-
+	for (int i = 0; i < 21; ++i) {
+		std::cout << inImage.getYUVDataSub()[i+(w*h)] << " ";
+	}
+	std::cout << "\n";
 
 
 	// Initialize global strings

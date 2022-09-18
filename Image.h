@@ -35,14 +35,15 @@ private:
 	int		Height;					// Height of Image
 	char	ImagePath[_MAX_PATH];	// Image location
 
-	// format: [BGR][BGR] ...
-	unsigned char*	Data;					// image in BGR format (for display)
+	int		n_pixels;
+
+	unsigned char*	Data;			// image in BGR format (for display); format: [BGR][BGR] ...
 	
 
 	// modified
-	float* YUV_Data;				// YUV data of the image
+	float* YUV_Data;				// YUV data of the image; format: [YYY...n_pix][UUU...n_pix][VVV...n_pix]
 	float* YUV_Data_Sub;			// YUV data after subsampling
-	float* YUV_Data_Up;			// YUV data after subsampling
+	float* YUV_Data_Up;				// YUV data after upsampling
 
 
 public:
@@ -65,6 +66,8 @@ public:
 	int		getHeight() { return Height; };
 	char*	getImagePath() { return ImagePath; }
 	unsigned char* getImageData() { return Data; };
+	float* getYUVData() { return YUV_Data;  };
+	float* getYUVDataSub() { return YUV_Data_Sub; };
 
 	// Input Output operations
 	bool	ReadImage();
@@ -77,7 +80,7 @@ public:
 
 	bool YUV2RGB();
 
-	bool SubSampling();
+	bool SubSampling(int step_y, int step_u, int step_v);
 
 	bool UpSampling();
 

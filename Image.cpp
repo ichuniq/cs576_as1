@@ -8,7 +8,7 @@
 //*****************************************************************************
 
 #include "Image.h"
-
+#include <iostream>
 
 // Constructor and Desctructors
 MyImage::MyImage() 
@@ -17,6 +17,8 @@ MyImage::MyImage()
 	Width = -1;
 	Height = -1;
 	ImagePath[0] = 0;
+
+	n_pixels = 1920 * 1080; // fixed size
 }
 
 MyImage::~MyImage()
@@ -209,19 +211,20 @@ bool MyImage::Modify()
 bool MyImage::RGB2YUV() 
 {
 	
-	// [YUV][YUV] ...
-	YUV_Data = new float [Width * Height * 3];
+	// format: [YYY ... n_pix][UUU ... n_pix][VVV ... n_pix]
+	// ease for further steps
+	YUV_Data = new float [n_pixels * 3];
 
-	for (int i = 0; i < Width * Height; ++i) {
-		// Data is in BGR
+	for (int i = 0; i < n_pixels; ++i) {
+		// Data is in [BGR][BGR] ...
 		unsigned char curr_B = Data[3 * i];
 		unsigned char curr_G = Data[3 * i + 1];
 		unsigned char curr_R = Data[3 * i + 2];
 		
 		// Y U V
-		YUV_Data[3 * i] = 0.299 * curr_R + 0.587 * curr_G + 0.114 * curr_B;
-		YUV_Data[3 * i + 1] = 0.596 * curr_R + (-0.274) * curr_G + (-0.322) * curr_B;
-		YUV_Data[3 * i + 2] = 0.211 * curr_R + (-0.523) * curr_G + 0.312 * curr_B;
+		YUV_Data[i] = 0.299 * curr_R + 0.587 * curr_G + 0.114 * curr_B;
+		YUV_Data[i + n_pixels] = 0.596 * curr_R + (-0.274) * curr_G + (-0.322) * curr_B;
+		YUV_Data[i + n_pixels * 2] = 0.211 * curr_R + (-0.523) * curr_G + 0.312 * curr_B;
 
 	}
 
@@ -233,10 +236,11 @@ bool MyImage::RGB2YUV()
 /* convert to RGB space */
 bool MyImage::YUV2RGB()
 {
-	for (int i = 0; i < Width * Height; ++i) {
-		float curr_Y = YUV_Data[3 * i];
-		float curr_U = YUV_Data[3 * i + 1];
-		float curr_V = YUV_Data[3 * i + 2];
+	for (int i = 0; i < n_pixels; ++i) {
+		// TODO: need to change to YUV_Up
+		float curr_Y = YUV_Data[i];
+		float curr_U = YUV_Data[i + n_pixels];
+		float curr_V = YUV_Data[i + n_pixels * 2];
 
 		float b = 1 * curr_Y + (-1.106) * curr_U + 1.703 * curr_V;
 		float g = 1 * curr_Y + (-0.272) * curr_U + (-0.647) * curr_V;
@@ -253,9 +257,73 @@ bool MyImage::YUV2RGB()
 
 
 
-/* YUV subsampling */
-bool MyImage::SubSampling()
+/* Subsample Y, U, V along width dimension */
+bool MyImage::SubSampling(int step_y, int step_u, int step_v)
 {
+	
+	YUV_Data_Sub = new float[Width * Height * 3];
+
+	// subsample y
+	if (step_y > 1) {
+		for (int i = 0; i < n_pixels; ++i) {
+			int row = i / Width;
+			int col = i % Width;
+			if (col % step_y == 0) {
+				YUV_Data_Sub[i] = YUV_Data[row * Width + col];
+			}
+			else {
+				YUV_Data_Sub[i] = 0;
+			}
+		}
+	} 
+	else {
+		for (int i = 0; i < n_pixels; ++i) {
+			YUV_Data_Sub[i] = YUV_Data[i];
+		}
+	}
+
+	// subsample u
+	if (step_u > 1) {
+		for (int i = 0; i < n_pixels; ++i) {
+			int row = i / Width;
+			int col = i % Width;
+			if (col % step_u == 0) {
+				YUV_Data_Sub[i + n_pixels] = YUV_Data[row * Width + col + n_pixels];
+			}
+			else {
+				YUV_Data_Sub[i + n_pixels] = 0;
+			}
+		} 
+	} 
+	else {
+		for (int i = n_pixels; i < 2*n_pixels; ++i) {
+			YUV_Data_Sub[i] = YUV_Data[i];
+		}
+	}
+
+	// subsample v
+	if (step_u > 1) {
+		for (int i = 0; i < n_pixels; ++i) {
+			int row = i / Width;
+			int col = i % Width;
+			if (col % step_v == 0) {
+				YUV_Data_Sub[i + 2 * n_pixels] = YUV_Data[row * Width + col + 2 * n_pixels];
+			}
+			else {
+				YUV_Data_Sub[i + 2 * n_pixels] = 0;
+			}
+		}
+	}
+	else {
+		for (int i = 2*n_pixels; i < 3*n_pixels; ++i) {
+			YUV_Data_Sub[i] = YUV_Data[i];
+		}
+	}
+
+
+	// fill in empty values 
+	UpSampling();
+
 
 	return 0;
 }
@@ -265,7 +333,11 @@ bool MyImage::SubSampling()
 /* Adjust upsampling for display*/
 bool MyImage::UpSampling()
 {
-
+	std::cout << "In upsampling" << "\n";
+	for (int i = 0; i < n_pixels; ++i) {
+		
+	}
+	
 	return 0;
 }
 
