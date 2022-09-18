@@ -42,8 +42,7 @@ private:
 
 	// modified
 	float* YUV_Data;				// YUV data of the image; format: [YYY...n_pix][UUU...n_pix][VVV...n_pix]
-	float* YUV_Data_Sub;			// YUV data after subsampling
-	float* YUV_Data_Up;				// YUV data after upsampling
+	float* YUV_Data_Smp;			// YUV data after sampling (downsample + upsample)
 
 
 public:
@@ -67,7 +66,7 @@ public:
 	char*	getImagePath() { return ImagePath; }
 	unsigned char* getImageData() { return Data; };
 	float* getYUVData() { return YUV_Data;  };
-	float* getYUVDataSub() { return YUV_Data_Sub; };
+	float* getYUVDataSmp() { return YUV_Data_Smp; };
 
 	// Input Output operations
 	bool	ReadImage();
@@ -80,9 +79,14 @@ public:
 
 	bool YUV2RGB();
 
-	bool SubSampling(int step_y, int step_u, int step_v);
+	bool helper_subsample(int step, int offset);
+	bool SubSampling(int step_y,int step_u, int step_v);
 
-	bool UpSampling();
+	bool helper_upsample(int step, int offset);
+	bool UpSampling(int step_y, int step_u, int step_v);
+
+	bool Scaling();
+	bool Antialiasing();
 
 };
 

@@ -1,14 +1,3 @@
-//*****************************************************************************
-//
-// Main.cpp : Defines the entry point for the application.
-// Creates a white RGB image with a black line and displays it.
-// Two images are displayed on the screen.
-// Left Pane: Input Image, Right Pane: Modified Image
-//
-// Author - Parag Havaldar
-// Code used by students as a starter code to display and modify images
-//
-//*****************************************************************************
 
 
 // Include class files
@@ -65,7 +54,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	char ImagePath[256];
 	int Y, U, V;
 	float Sw, Sh;
-	int anti_alias;
+	int anti_alias=0;
 	sscanf(lpCmdLine, "%s %d %d %d %f %f %d", &ImagePath, &Y, &U, &V, &Sw, &Sh, &anti_alias);
 	
 	std::cout << "input args: " << ImagePath << " " << Y << " " << U << " " << V  << " "\
@@ -73,20 +62,37 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	
 	// Set up image properties
 	int w = 1920; int h = 1080;
+	int n_pixels = w * h;
 	inImage.setWidth(w);
 	inImage.setHeight(h);
 
 	inImage.setImagePath(ImagePath);
 	inImage.ReadImage();
 
-	inImage.RGB2YUV();
-	inImage.YUV2RGB();
-	inImage.SubSampling(Y, U, V);
+	outImage = inImage;
 
-	for (int i = 0; i < 21; ++i) {
-		std::cout << inImage.getYUVDataSub()[i+(w*h)] << " ";
+	outImage.RGB2YUV();
+	
+	outImage.SubSampling(Y, U, V);
+	
+	for (int i = 0; i < 20; ++i) {
+		std::cout << outImage.getYUVDataSmp()[i + 1 * n_pixels] << " ";
 	}
 	std::cout << "\n";
+	std::cout << "----- before upsampling -----\n";
+
+	outImage.UpSampling(Y, U, V);
+
+	outImage.YUV2RGB();
+
+	for (int i = 0; i < 20; ++i) {
+		std::cout << outImage.getYUVDataSmp()[i + 1*n_pixels] << " ";
+	}
+	std::cout << "\n";
+	//for (int i = 1900; i < 1920; ++i) {
+	//	std::cout << outImage.getYUVDataSmp()[i + n_pixels] << " ";
+	//}
+	//std::cout << "\n";
 
 
 	// Initialize global strings
@@ -234,6 +240,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				DrawText(hdc, text, strlen(text), &rt, DT_LEFT);
 				//strcpy(text, "\nUpdate program with your code to modify input image. \n");
 				//DrawText(hdc, text, strlen(text), &rt, DT_LEFT);
+				strcpy(text, "\nThe altered image is shown as follows. \n");
+				DrawText(hdc, text, strlen(text), &rt, DT_LEFT);
 
 				BITMAPINFO bmi;
 				// CBitmap bitmap;
@@ -249,7 +257,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				SetDIBitsToDevice(hdc,
 								  0,50,inImage.getWidth(),inImage.getHeight(),
 								  0,0,0,inImage.getHeight(),
-								  inImage.getImageData(),&bmi,DIB_RGB_COLORS);
+								  outImage.getImageData(),&bmi,DIB_RGB_COLORS);
 
 
 				EndPaint(hWnd, &ps);

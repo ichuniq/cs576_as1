@@ -13,12 +13,14 @@
 // Constructor and Desctructors
 MyImage::MyImage() 
 {
-	Data = NULL;
+	Data = nullptr;
 	Width = -1;
 	Height = -1;
 	ImagePath[0] = 0;
 
 	n_pixels = 1920 * 1080; // fixed size
+	YUV_Data = nullptr;
+	YUV_Data_Smp = nullptr;
 }
 
 MyImage::~MyImage()
@@ -27,18 +29,22 @@ MyImage::~MyImage()
 		delete Data;
 	if (YUV_Data)
 		delete YUV_Data;
+	if (YUV_Data_Smp)
+		delete YUV_Data_Smp;
 }
 
 
 // Copy constructor
-MyImage::MyImage( MyImage *otherImage)
+MyImage::MyImage(MyImage *otherImage)
 {
 	Height = otherImage->Height;
 	Width  = otherImage->Width;
 	Data   = new unsigned char[Width*Height*3];
+
+	n_pixels = otherImage->n_pixels;
 	strcpy(otherImage->ImagePath, ImagePath );
 
-	for ( int i=0; i<(Height*Width*3); i++ )
+	for (int i = 0; i < (Height*Width*3); i++)
 	{
 		Data[i]	= otherImage->Data[i];
 	}
@@ -237,14 +243,14 @@ bool MyImage::RGB2YUV()
 bool MyImage::YUV2RGB()
 {
 	for (int i = 0; i < n_pixels; ++i) {
-		// TODO: need to change to YUV_Up
-		float curr_Y = YUV_Data[i];
-		float curr_U = YUV_Data[i + n_pixels];
-		float curr_V = YUV_Data[i + n_pixels * 2];
 
-		float b = 1 * curr_Y + (-1.106) * curr_U + 1.703 * curr_V;
-		float g = 1 * curr_Y + (-0.272) * curr_U + (-0.647) * curr_V;
+		float curr_Y = YUV_Data_Smp[i];
+		float curr_U = YUV_Data_Smp[i + n_pixels];
+		float curr_V = YUV_Data_Smp[i + n_pixels * 2];
+
 		float r = 1 * curr_Y + 0.956 * curr_U + 0.621 * curr_V;
+		float g = 1 * curr_Y + (-0.272) * curr_U + (-0.647) * curr_V;
+		float b = 1 * curr_Y + (-1.106) * curr_U + 1.703 * curr_V;
 
 		// B G R
 		Data[3 * i] = (b < 0 ? 0 : b > 255 ? 255 : b);
@@ -257,86 +263,81 @@ bool MyImage::YUV2RGB()
 
 
 
+bool MyImage::helper_subsample(int step, int offset)
+{
+	/* 
+	step: step of Y, U, V
+	offset: shift to target channel address
+		(since we store 3d channel in 1d array)
+	*/
+	if (step > 1) {
+		for (int i = 0; i < n_pixels; ++i) {
+			int col = i % Width;
+			if (col % step == 0) {
+				YUV_Data_Smp[i+offset] = YUV_Data[i+offset];
+			}
+			else {
+				YUV_Data_Smp[i+offset] = 0;
+			}
+		}
+	}
+	else {
+		for (int i = 0; i < n_pixels; ++i) {
+			YUV_Data_Smp[i+offset] = YUV_Data[i+offset];
+		}
+	}
+
+	return 0;
+}
+
 /* Subsample Y, U, V along width dimension */
 bool MyImage::SubSampling(int step_y, int step_u, int step_v)
 {
-	
-	YUV_Data_Sub = new float[Width * Height * 3];
-
+	YUV_Data_Smp = new float[Width * Height * 3];
 	// subsample y
-	if (step_y > 1) {
-		for (int i = 0; i < n_pixels; ++i) {
-			int row = i / Width;
-			int col = i % Width;
-			if (col % step_y == 0) {
-				YUV_Data_Sub[i] = YUV_Data[row * Width + col];
-			}
-			else {
-				YUV_Data_Sub[i] = 0;
-			}
-		}
-	} 
-	else {
-		for (int i = 0; i < n_pixels; ++i) {
-			YUV_Data_Sub[i] = YUV_Data[i];
-		}
-	}
-
+	helper_subsample(step_y, 0);
 	// subsample u
-	if (step_u > 1) {
-		for (int i = 0; i < n_pixels; ++i) {
-			int row = i / Width;
-			int col = i % Width;
-			if (col % step_u == 0) {
-				YUV_Data_Sub[i + n_pixels] = YUV_Data[row * Width + col + n_pixels];
-			}
-			else {
-				YUV_Data_Sub[i + n_pixels] = 0;
-			}
-		} 
-	} 
-	else {
-		for (int i = n_pixels; i < 2*n_pixels; ++i) {
-			YUV_Data_Sub[i] = YUV_Data[i];
-		}
-	}
-
+	helper_subsample(step_u, n_pixels);
 	// subsample v
-	if (step_u > 1) {
-		for (int i = 0; i < n_pixels; ++i) {
-			int row = i / Width;
-			int col = i % Width;
-			if (col % step_v == 0) {
-				YUV_Data_Sub[i + 2 * n_pixels] = YUV_Data[row * Width + col + 2 * n_pixels];
-			}
-			else {
-				YUV_Data_Sub[i + 2 * n_pixels] = 0;
-			}
-		}
-	}
-	else {
-		for (int i = 2*n_pixels; i < 3*n_pixels; ++i) {
-			YUV_Data_Sub[i] = YUV_Data[i];
-		}
-	}
-
-
-	// fill in empty values 
-	UpSampling();
-
+	helper_subsample(step_v, 2*n_pixels);
 
 	return 0;
 }
 
 
 
-/* Adjust upsampling for display*/
-bool MyImage::UpSampling()
+/* helper function: replace non-zero values */
+bool MyImage::helper_upsample(int step, int offset)
 {
-	std::cout << "In upsampling" << "\n";
 	for (int i = 0; i < n_pixels; ++i) {
-		
+		int row = i / Width;
+		int col = i % Width;
+		if (col % step != 0) {
+			// find prev and next non-zero values
+			int prev = col - col % step;
+			int next = col + step - col % step;
+			if (next > Width) {
+				next = prev;
+			}
+			prev += row*Width;
+			next += row*Width;
+			YUV_Data_Smp[i + offset] = \
+				(YUV_Data_Smp[prev + offset] + YUV_Data_Smp[next + offset]) / 2;
+		}
 	}
+
+	return 0;
+}
+
+/* Upsampling for display*/
+bool MyImage::UpSampling(int step_y, int step_u, int step_v)
+{
+	if (step_y > 1)
+		helper_upsample(step_y, 0);
+	if (step_u > 1)
+		helper_upsample(step_u, n_pixels);
+	if (step_v > 1)
+		helper_upsample(step_v, 2*n_pixels);
 	
 	return 0;
 }
