@@ -12,12 +12,16 @@ MyImage			outImage;						// image objects
 
 HINSTANCE		hInst;							// current instance
 TCHAR szTitle[MAX_LOADSTRING];					// The title bar text
-TCHAR szWindowClass[MAX_LOADSTRING];			// The title bar text
+TCHAR szWindowClass[MAX_LOADSTRING];			// Name of the window class
 
 // Foward declarations of functions included in this code module:
 ATOM				MyRegisterClass(HINSTANCE hInstance);
+ATOM				MyRegisterClass2(HINSTANCE hInstance);
+
 BOOL				InitInstance(HINSTANCE, int);
-LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK	WndProc(HWND hWnd, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK	WndProc2(HWND hWnd2, UINT, WPARAM, LPARAM);
+
 LRESULT CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
 
 
@@ -102,6 +106,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	LoadString(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
 	LoadString(hInstance, IDC_IMAGE, szWindowClass, MAX_LOADSTRING);
 	MyRegisterClass(hInstance);
+	MyRegisterClass2(hInstance);
 
 	// Perform application initialization:
 	if (!InitInstance (hInstance, nCmdShow)) 
@@ -158,6 +163,27 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 	return RegisterClassEx(&wcex);
 }
 
+ATOM MyRegisterClass2(HINSTANCE hInstance)
+{
+	WNDCLASSEX wcex2;
+
+	wcex2.cbSize = sizeof(WNDCLASSEX);
+
+	wcex2.style = CS_HREDRAW | CS_VREDRAW;
+	wcex2.lpfnWndProc = (WNDPROC)WndProc2;
+	wcex2.cbClsExtra = 0;
+	wcex2.cbWndExtra = 0;
+	wcex2.hInstance = hInstance;
+	wcex2.hIcon = LoadIcon(hInstance, (LPCTSTR)IDI_IMAGE);
+	wcex2.hCursor = LoadCursor(NULL, IDC_ARROW);
+	wcex2.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+	wcex2.lpszMenuName = (LPCSTR)IDC_IMAGE;
+	wcex2.lpszClassName = "windowclass 2";
+	wcex2.hIconSm = LoadIcon(wcex2.hInstance, (LPCTSTR)IDI_SMALL);
+
+	return RegisterClassEx(&wcex2);
+}
+
 
 //
 //   FUNCTION: InitInstance(HANDLE, int)
@@ -175,7 +201,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
    hInst = hInstance; // Store instance handle in our global variable
 
-   hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+   hWnd = CreateWindow(szWindowClass, "Original", WS_OVERLAPPEDWINDOW,
 	  CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
 
    if (!hWnd)
@@ -185,6 +211,21 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
+
+
+   HWND hWnd2;
+
+   hWnd2 = CreateWindow("windowclass 2", "Modified", WS_OVERLAPPEDWINDOW,
+	   CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
+
+   if (!hWnd2)
+   {
+	   return FALSE;
+   }
+
+   ShowWindow(hWnd2, nCmdShow);
+   //SetParent(hWnd2, hWnd);
+   UpdateWindow(hWnd2);
 
    return TRUE;
 }
@@ -241,39 +282,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				char text[1000];
 				strcpy(text, "The original image is shown as follows. \n");
 				DrawText(hdc, text, strlen(text), &rt, DT_LEFT);
-				//strcpy(text, "\nUpdate program with your code to modify input image. \n");
-				//DrawText(hdc, text, strlen(text), &rt, DT_LEFT);
-				strcpy(text, "\nThe altered image is shown as follows. \n");
-				DrawText(hdc, text, strlen(text), &rt, DT_LEFT);
 
 				BITMAPINFO bmi;
 				// CBitmap bitmap;
 				memset(&bmi,0,sizeof(bmi));
 				bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
-				//bmi.bmiHeader.biWidth = inImage.getWidth();
-				//bmi.bmiHeader.biHeight = -inImage.getHeight();  // Use negative height.  DIB is top-down.
-				//bmi.bmiHeader.biPlanes = 1;
-				//bmi.bmiHeader.biBitCount = 24;
-				//bmi.bmiHeader.biCompression = BI_RGB;
-				//bmi.bmiHeader.biSizeImage = inImage.getWidth()*inImage.getHeight();
-
-				//SetDIBitsToDevice(hdc,
-				//				  0,50,inImage.getWidth(),inImage.getHeight(),
-				//				  0,0,0,inImage.getHeight(),
-				//				  inImage.getImageData(),&bmi,DIB_RGB_COLORS);
-
-				bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
-				bmi.bmiHeader.biWidth = outImage.getWidth();
-				bmi.bmiHeader.biHeight = -outImage.getHeight();  // Use negative height.  DIB is top-down.
+				bmi.bmiHeader.biWidth = inImage.getWidth();
+				bmi.bmiHeader.biHeight = -inImage.getHeight();  // Use negative height.  DIB is top-down.
 				bmi.bmiHeader.biPlanes = 1;
 				bmi.bmiHeader.biBitCount = 24;
 				bmi.bmiHeader.biCompression = BI_RGB;
-				bmi.bmiHeader.biSizeImage = outImage.getWidth() * outImage.getHeight();
+				bmi.bmiHeader.biSizeImage = inImage.getWidth()*inImage.getHeight();
 
 				SetDIBitsToDevice(hdc,
-					0, 50, outImage.getWidth(), outImage.getHeight(),
-					0, 0, 0, outImage.getHeight(),
-					outImage.getImageData(), &bmi, DIB_RGB_COLORS);
+								  0,50,inImage.getWidth(),inImage.getHeight(),
+								  0,0,0,inImage.getHeight(),
+								  inImage.getImageData(),&bmi,DIB_RGB_COLORS);
 
 				EndPaint(hWnd, &ps);
 			}
@@ -310,3 +334,71 @@ LRESULT CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 }
 
 
+// Process for the second window
+LRESULT CALLBACK WndProc2(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+
+	int wmId, wmEvent;
+	PAINTSTRUCT ps;
+	HDC hdc;
+	TCHAR szHello[MAX_LOADSTRING];
+	LoadString(hInst, IDS_HELLO, szHello, MAX_LOADSTRING);
+	RECT rt;
+	GetClientRect(hWnd, &rt);
+
+	switch (message)
+	{
+	case WM_COMMAND:
+		wmId = LOWORD(wParam);
+		wmEvent = HIWORD(wParam);
+		// Parse the menu selections:
+		switch (wmId)
+		{
+		case IDM_ABOUT:
+			DialogBox(hInst, (LPCTSTR)IDD_ABOUTBOX, hWnd, (DLGPROC)About);
+			break;
+		case ID_MODIFY_IMAGE:
+			InvalidateRect(hWnd, &rt, false);
+			break;
+		case IDM_EXIT:
+			DestroyWindow(hWnd);
+			break;
+		default:
+			return DefWindowProc(hWnd, message, wParam, lParam);
+		}
+		break;
+	case WM_PAINT:
+	{
+		hdc = BeginPaint(hWnd, &ps);
+		char text[1000];
+		strcpy(text, "The modified image is shown as follows. \n");
+		DrawText(hdc, text, strlen(text), &rt, DT_LEFT);
+
+		BITMAPINFO bmi;
+		CBitmap bitmap;
+
+		memset(&bmi, 0, sizeof(bmi));
+		bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
+		bmi.bmiHeader.biWidth = outImage.getWidth();
+		bmi.bmiHeader.biHeight = -outImage.getHeight();  // Use negative height.  DIB is top-down.
+		bmi.bmiHeader.biPlanes = 1;
+		bmi.bmiHeader.biBitCount = 24;
+		bmi.bmiHeader.biCompression = BI_RGB;
+		bmi.bmiHeader.biSizeImage = outImage.getWidth() * outImage.getHeight();
+
+		SetDIBitsToDevice(hdc,
+			0, 50, outImage.getWidth(), outImage.getHeight(),
+			0, 0, 0, outImage.getHeight(),
+			outImage.getImageData(), &bmi, DIB_RGB_COLORS);
+
+		EndPaint(hWnd, &ps);
+	}
+	break;
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		break;
+	default:
+		return DefWindowProc(hWnd, message, wParam, lParam);
+	}
+	return 0;
+}
