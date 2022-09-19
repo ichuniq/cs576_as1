@@ -23,9 +23,9 @@ LRESULT CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
 
 // Main entry point for a windows application
 int APIENTRY WinMain(HINSTANCE hInstance,
-                     HINSTANCE hPrevInstance,
-                     LPSTR     lpCmdLine,
-                     int       nCmdShow)
+					 HINSTANCE hPrevInstance,
+					 LPSTR     lpCmdLine,
+					 int       nCmdShow)
 {
 	MSG msg;
 	HACCEL hAccelTable;
@@ -93,6 +93,9 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	//	std::cout << outImage.getYUVDataSmp()[i + n_pixels] << " ";
 	//}
 	//std::cout << "\n";
+
+	outImage.Scaling(Sw, Sh, anti_alias);
+
 
 
 	// Initialize global strings
@@ -173,11 +176,11 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    hInst = hInstance; // Store instance handle in our global variable
 
    hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
+	  CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
 
    if (!hWnd)
    {
-      return FALSE;
+	  return FALSE;
    }
    
    ShowWindow(hWnd, nCmdShow);
@@ -247,18 +250,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				// CBitmap bitmap;
 				memset(&bmi,0,sizeof(bmi));
 				bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
-				bmi.bmiHeader.biWidth = inImage.getWidth();
-				bmi.bmiHeader.biHeight = -inImage.getHeight();  // Use negative height.  DIB is top-down.
+				//bmi.bmiHeader.biWidth = inImage.getWidth();
+				//bmi.bmiHeader.biHeight = -inImage.getHeight();  // Use negative height.  DIB is top-down.
+				//bmi.bmiHeader.biPlanes = 1;
+				//bmi.bmiHeader.biBitCount = 24;
+				//bmi.bmiHeader.biCompression = BI_RGB;
+				//bmi.bmiHeader.biSizeImage = inImage.getWidth()*inImage.getHeight();
+
+				//SetDIBitsToDevice(hdc,
+				//				  0,50,inImage.getWidth(),inImage.getHeight(),
+				//				  0,0,0,inImage.getHeight(),
+				//				  inImage.getImageData(),&bmi,DIB_RGB_COLORS);
+
+				bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
+				bmi.bmiHeader.biWidth = outImage.getWidth();
+				bmi.bmiHeader.biHeight = -outImage.getHeight();  // Use negative height.  DIB is top-down.
 				bmi.bmiHeader.biPlanes = 1;
 				bmi.bmiHeader.biBitCount = 24;
 				bmi.bmiHeader.biCompression = BI_RGB;
-				bmi.bmiHeader.biSizeImage = inImage.getWidth()*inImage.getHeight();
+				bmi.bmiHeader.biSizeImage = outImage.getWidth() * outImage.getHeight();
 
 				SetDIBitsToDevice(hdc,
-								  0,50,inImage.getWidth(),inImage.getHeight(),
-								  0,0,0,inImage.getHeight(),
-								  outImage.getImageData(),&bmi,DIB_RGB_COLORS);
-
+					0, 50, outImage.getWidth(), outImage.getHeight(),
+					0, 0, 0, outImage.getHeight(),
+					outImage.getImageData(), &bmi, DIB_RGB_COLORS);
 
 				EndPaint(hWnd, &ps);
 			}
@@ -291,7 +306,7 @@ LRESULT CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 	}
-    return FALSE;
+	return FALSE;
 }
 
 

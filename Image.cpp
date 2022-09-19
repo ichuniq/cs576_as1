@@ -123,9 +123,9 @@ bool MyImage::ReadImage()
 	}
 
 	// Clean up and return
-	delete [] Rbuf;
-	delete [] Gbuf;
-	delete [] Bbuf;
+	delete[] Rbuf;
+	delete[] Gbuf;
+	delete[] Bbuf;
 
 	fclose(IN_FILE);
 
@@ -274,16 +274,16 @@ bool MyImage::helper_subsample(int step, int offset)
 		for (int i = 0; i < n_pixels; ++i) {
 			int col = i % Width;
 			if (col % step == 0) {
-				YUV_Data_Smp[i+offset] = YUV_Data[i+offset];
+				YUV_Data_Smp[i + offset] = YUV_Data[i + offset];
 			}
 			else {
-				YUV_Data_Smp[i+offset] = 0;
+				YUV_Data_Smp[i + offset] = 0;
 			}
 		}
 	}
 	else {
 		for (int i = 0; i < n_pixels; ++i) {
-			YUV_Data_Smp[i+offset] = YUV_Data[i+offset];
+			YUV_Data_Smp[i + offset] = YUV_Data[i + offset];
 		}
 	}
 
@@ -299,7 +299,7 @@ bool MyImage::SubSampling(int step_y, int step_u, int step_v)
 	// subsample u
 	helper_subsample(step_u, n_pixels);
 	// subsample v
-	helper_subsample(step_v, 2*n_pixels);
+	helper_subsample(step_v, 2 * n_pixels);
 
 	return 0;
 }
@@ -342,5 +342,76 @@ bool MyImage::UpSampling(int step_y, int step_u, int step_v)
 	return 0;
 }
 
+
+
+bool MyImage::Scaling(float Sw, float Sh, bool anti_alias)
+{
+	if (!Sw || !Sh) {
+		return 0;
+	}
+
+	int newWidth = Width * Sw;
+	int newHeight = Height * Sh;
+	int new_pixels = newWidth * newHeight;
+	unsigned char* newData = new unsigned char[new_pixels * 3];
+
+
+	if (!anti_alias) {
+		for (int i = 0; i < newHeight; ++i) {
+			for (int j = 0; j < newWidth; ++j) {
+				// inverse map to source pixel
+				int src_i = (int)(i / Sh); int src_j = (int)(j / Sw);
+				newData[3 * (i * newWidth + j)] = Data[3 * (src_i * Width + src_j)];
+				newData[3 * (i * newWidth + j) + 1] = Data[3 * (src_i * Width + src_j) + 1];
+				newData[3 * (i * newWidth + j) + 2] = Data[3 * (src_i * Width + src_j) + 2];
+			}
+		}
+	} else {
+		// calculate average of the neighbor (3x3) of source pixel for anti_aliasing
+
+		// unsigned char* avgData = get_average();
+		for (int i = 0; i < newHeight; ++i) {
+			for (int j = 0; j < newWidth; ++j) {
+				// inverse map to source pixel
+				int src_i = (int)(i / Sh); int src_j = (int)(j / Sw);
+
+				int Bsum = 0;
+				int Gsum = 0;
+				int Rsum = 0;
+
+				int miss_val = 0;
+				for (int k = src_j - 1; k <= src_j + 1; k++) {
+					for (int l = src_i - 1; l <= src_i + 1; l++) {
+						if (k < 0 || k >= Width || l < 0 || l >= Height) {
+							miss_val += 1;
+							continue;
+						}
+
+						Bsum += Data[3 * (l * Width + k)];
+						Gsum += Data[3 * (l * Width + k) + 1];
+						Rsum += Data[3 * (l * Width + k) + 2];
+					}
+				}
+
+				newData[3 * (i * newWidth + j)] = Bsum / (9 - miss_val);
+				newData[3 * (i * newWidth + j) + 1] = Gsum / (9 - miss_val);
+				newData[3 * (i * newWidth + j) + 2] = Rsum / (9 - miss_val);
+			}
+		}
+		
+	}
+	
+
+
+	// update object properties
+	delete[] Data;
+
+	Data = newData;
+	Width = newWidth;
+	Height = newHeight;
+	n_pixels = new_pixels;
+
+	return 0;
+}
 
 

@@ -85,8 +85,9 @@ public:
 	bool helper_upsample(int step, int offset);
 	bool UpSampling(int step_y, int step_u, int step_v);
 
-	bool Scaling();
-	bool Antialiasing();
+	bool Scaling(float Sw, float Sh, bool anti_alias);
+
+	unsigned char* get_average();
 
 };
 
